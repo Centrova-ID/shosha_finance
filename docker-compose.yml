@@ -19,20 +19,23 @@ services:
       timeout: 5s
       retries: 5
 
-  go_backend:
+  # Cloud API - API yang di-deploy untuk sinkronisasi
+  cloud_api:
     build: ./backend
-    container_name: shosha_finance_api
+    container_name: shosha_cloud_api
     restart: always
     ports:
       - "3000:3000"
     environment:
       APP_MODE: cloud
       PORT: "3000"
+      DB_DRIVER: postgres
       DB_HOST: postgres_db
       DB_USER: ${DB_USER:-postgres}
       DB_PASS: ${DB_PASS:-password}
       DB_NAME: shosha_finance
       DB_PORT: "5432"
+      JWT_SECRET: ${JWT_SECRET:-shosha-finance-cloud-secret-2024}
     depends_on:
       postgres_db:
         condition: service_healthy

@@ -1,20 +1,23 @@
 package repository
 
 import (
+	"time"
+
 	"shosha-finance/internal/models"
 
 	"github.com/google/uuid"
 	"gorm.io/gorm"
+	"gorm.io/gorm/clause"
 )
 
 type TransactionRepository interface {
 	Create(tx *models.Transaction) error
 	FindByID(id uuid.UUID) (*models.Transaction, error)
-	FindAll(page, limit int, branchID uuid.UUID) ([]models.Transaction, int64, error)
-	FindUnsynced(limit int) ([]models.Transaction, error)
-	MarkAsSynced(ids []uuid.UUID) error
-	GetDashboardSummary(branchID uuid.UUID) (*DashboardSummary, error)
+	FindAll(page, limit int) ([]models.Transaction, int64, error)
+	GetDashboardSummary(filter *DashboardFilter) (*DashboardSummary, error)
 	GetUnsyncedCount() (int64, error)
+	Upsert(tx *models.Transaction) error
+	GetUpdatedAfter(since *time.Time) ([]models.Transaction, error)
 }
 
 type DashboardSummary struct {
@@ -47,23 +50,18 @@ func (r *transactionRepository) FindByID(id uuid.UUID) (*models.Transaction, err
 	return &tx, nil
 }
 
-func (r *transactionRepository) FindAll(page, limit int, branchID uuid.UUID) ([]models.Transaction, int64, error) {
+func (r *transactionRepository) FindAll(page, limit int) ([]models.Transaction, int64, error) {
 	var transactions []models.Transaction
 	var total int64
 
 	offset := (page - 1) * limit
 
-	query := r.db.Model(&models.Transaction{})
-	if branchID != uuid.Nil {
-		query = query.Where("branch_id = ?", branchID)
-	}
-
-	err := query.Count(&total).Error
+	err := r.db.Model(&models.Transaction{}).Count(&total).Error
 	if err != nil {
 		return nil, 0, err
 	}
 
-	err = query.Order("created_at DESC").Offset(offset).Limit(limit).Find(&transactions).Error
+	err = r.db.Order("created_at DESC").Offset(offset).Limit(limit).Find(&transactions).Error
 	if err != nil {
 		return nil, 0, err
 	}
@@ -71,56 +69,68 @@ func (r *transactionRepository) FindAll(page, limit int, branchID uuid.UUID) ([]
 	return transactions, total, nil
 }
 
-func (r *transactionRepository) FindUnsynced(limit int) ([]models.Transaction, error) {
-	var transactions []models.Transaction
-	err := r.db.Where("is_synced = ?", false).Limit(limit).Find(&transactions).Error
-	return transactions, err
+type DashboardFilter struct {
+	BranchID  *uuid.UUID
+	StartDate *time.Time
+	EndDate   *time.Time
 }
 
-func (r *transactionRepository) MarkAsSynced(ids []uuid.UUID) error {
-	return r.db.Model(&models.Transaction{}).
-		Where("id IN ?", ids).
-		Updates(map[string]interface{}{
-			"is_synced": true,
-			"synced_at": gorm.Expr("CURRENT_TIMESTAMP"),
-		}).Error
-}
-
-func (r *transactionRepository) GetDashboardSummary(branchID uuid.UUID) (*DashboardSummary, error) {
+func (r *transactionRepository) GetDashboardSummary(filter *DashboardFilter) (*DashboardSummary, error) {
 	var summary DashboardSummary
 
-	query := r.db.Model(&models.Transaction{})
-	if branchID != uuid.Nil {
-		query = query.Where("branch_id = ?", branchID)
-	}
-
 	var totalIn, totalOut int64
-	var countIn, countOut int64
+	var countIn, countOut, unsyncCount int64
 
-	err := query.Where("type = ?", models.TransactionTypeIN).
-		Select("COALESCE(SUM(amount), 0)").Scan(&totalIn).Error
+	// Helper to apply filters
+	applyFilter := func(query *gorm.DB) *gorm.DB {
+		if filter != nil {
+			if filter.BranchID != nil {
+				query = query.Where("branch_id = ?", *filter.BranchID)
+			}
+			if filter.StartDate != nil {
+				query = query.Where("created_at >= ?", *filter.StartDate)
+			}
+			if filter.EndDate != nil {
+				query = query.Where("created_at < ?", *filter.EndDate)
+			}
+		}
+		return query
+	}
+
+	// Total IN
+	queryIn := applyFilter(r.db.Model(&models.Transaction{}).Where("type = ?", models.TransactionTypeIN))
+	err := queryIn.Select("COALESCE(SUM(amount), 0)").Scan(&totalIn).Error
 	if err != nil {
 		return nil, err
 	}
 
-	err = query.Where("type = ?", models.TransactionTypeOUT).
-		Select("COALESCE(SUM(amount), 0)").Scan(&totalOut).Error
+	// Total OUT
+	queryOut := applyFilter(r.db.Model(&models.Transaction{}).Where("type = ?", models.TransactionTypeOUT))
+	err = queryOut.Select("COALESCE(SUM(amount), 0)").Scan(&totalOut).Error
 	if err != nil {
 		return nil, err
 	}
 
-	err = query.Where("type = ?", models.TransactionTypeIN).Count(&countIn).Error
+	// Count IN
+	queryCountIn := applyFilter(r.db.Model(&models.Transaction{}).Where("type = ?", models.TransactionTypeIN))
+	err = queryCountIn.Count(&countIn).Error
 	if err != nil {
 		return nil, err
 	}
 
-	err = query.Where("type = ?", models.TransactionTypeOUT).Count(&countOut).Error
+	// Count OUT
+	queryCountOut := applyFilter(r.db.Model(&models.Transaction{}).Where("type = ?", models.TransactionTypeOUT))
+	err = queryCountOut.Count(&countOut).Error
 	if err != nil {
 		return nil, err
 	}
 
-	var unsyncCount int64
-	err = r.db.Model(&models.Transaction{}).Where("is_synced = ?", false).Count(&unsyncCount).Error
+	// Unsync count (no date filter for this)
+	queryUnsync := r.db.Model(&models.Transaction{}).Where("is_synced = ?", false)
+	if filter != nil && filter.BranchID != nil {
+		queryUnsync = queryUnsync.Where("branch_id = ?", *filter.BranchID)
+	}
+	err = queryUnsync.Count(&unsyncCount).Error
 	if err != nil {
 		return nil, err
 	}
@@ -139,4 +149,21 @@ func (r *transactionRepository) GetUnsyncedCount() (int64, error) {
 	var count int64
 	err := r.db.Model(&models.Transaction{}).Where("is_synced = ?", false).Count(&count).Error
 	return count, err
+}
+
+func (r *transactionRepository) Upsert(tx *models.Transaction) error {
+	return r.db.Clauses(clause.OnConflict{
+		Columns:   []clause.Column{{Name: "id"}},
+		UpdateAll: true,
+	}).Create(tx).Error
+}
+
+func (r *transactionRepository) GetUpdatedAfter(since *time.Time) ([]models.Transaction, error) {
+	var transactions []models.Transaction
+	query := r.db.Model(&models.Transaction{})
+	if since != nil {
+		query = query.Where("updated_at > ? OR created_at > ?", since, since)
+	}
+	err := query.Find(&transactions).Error
+	return transactions, err
 }

@@ -4,6 +4,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	"gorm.io/gorm"
 )
 
 type TransactionType string
@@ -23,10 +24,10 @@ type Transaction struct {
 	CreatedAt   time.Time       `gorm:"autoCreateTime" json:"created_at"`
 	IsSynced    bool            `gorm:"default:false" json:"is_synced"`
 	SyncedAt    *time.Time      `json:"synced_at"`
-	Branch      Branch          `gorm:"foreignKey:BranchID" json:"-"`
+	Branch      Branch          `gorm:"foreignKey:BranchID" json:"branch,omitempty"`
 }
 
-func (t *Transaction) BeforeCreate() error {
+func (t *Transaction) BeforeCreate(tx *gorm.DB) error {
 	if t.ID == uuid.Nil {
 		t.ID = uuid.New()
 	}
@@ -34,6 +35,7 @@ func (t *Transaction) BeforeCreate() error {
 }
 
 type TransactionRequest struct {
+	BranchID    string          `json:"branch_id" validate:"required"`
 	Type        TransactionType `json:"type" validate:"required,oneof=IN OUT"`
 	Category    string          `json:"category" validate:"required"`
 	Amount      int64           `json:"amount" validate:"required,gt=0"`
@@ -48,6 +50,4 @@ type TransactionResponse struct {
 	Amount      int64           `json:"amount"`
 	Description string          `json:"description"`
 	CreatedAt   time.Time       `json:"created_at"`
-	IsSynced    bool            `json:"is_synced"`
-	SyncedAt    *time.Time      `json:"synced_at"`
 }

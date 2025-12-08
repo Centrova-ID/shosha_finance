@@ -1,15 +1,15 @@
 import { useState } from 'react'
-import { Link } from 'react-router-dom'
 import { useTransactions } from '@/hooks/useTransactions'
-import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Button } from '@/components/ui/button'
 import { formatCurrency, formatDate } from '@/lib/utils'
-import { PlusCircle, RefreshCw, Check, Clock, ChevronLeft, ChevronRight } from 'lucide-react'
+import { RefreshCw, ChevronLeft, ChevronRight } from 'lucide-react'
+import TransactionSheet from '@/components/TransactionSheet'
 
 export default function Transactions() {
   const [page, setPage] = useState(1)
   const limit = 10
-  const { data, isLoading, error } = useTransactions(page, limit)
+  const { data, isLoading, error, refetch } = useTransactions(page, limit)
 
   if (isLoading) {
     return (
@@ -34,12 +34,7 @@ export default function Transactions() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <h2 className="text-3xl font-bold tracking-tight">Daftar Transaksi</h2>
-        <Button asChild>
-          <Link to="/transactions/new">
-            <PlusCircle className="mr-2 h-4 w-4" />
-            Input Transaksi
-          </Link>
-        </Button>
+        <TransactionSheet onSuccess={() => refetch()} />
       </div>
 
       <Card>
@@ -58,17 +53,22 @@ export default function Transactions() {
                   <thead>
                     <tr className="border-b bg-muted/50">
                       <th className="p-3 text-left font-medium">Tanggal</th>
+                      <th className="p-3 text-left font-medium">Unit</th>
                       <th className="p-3 text-left font-medium">Tipe</th>
                       <th className="p-3 text-left font-medium">Kategori</th>
                       <th className="p-3 text-left font-medium">Keterangan</th>
                       <th className="p-3 text-right font-medium">Jumlah</th>
-                      <th className="p-3 text-center font-medium">Sync</th>
                     </tr>
                   </thead>
                   <tbody>
                     {transactions.map((tx) => (
                       <tr key={tx.id} className="border-b last:border-0">
                         <td className="p-3 text-sm">{formatDate(tx.created_at)}</td>
+                        <td className="p-3 text-sm">
+                          <span className="inline-flex items-center rounded-full bg-secondary px-2 py-1 text-xs font-medium">
+                            {tx.branch?.name || tx.branch_id.slice(0, 8)}
+                          </span>
+                        </td>
                         <td className="p-3">
                           <span
                             className={`inline-flex items-center rounded-full px-2 py-1 text-xs font-medium ${
@@ -91,13 +91,6 @@ export default function Transactions() {
                         >
                           {tx.type === 'IN' ? '+' : '-'}
                           {formatCurrency(tx.amount)}
-                        </td>
-                        <td className="p-3 text-center">
-                          {tx.is_synced ? (
-                            <Check className="h-4 w-4 text-green-500 mx-auto" />
-                          ) : (
-                            <Clock className="h-4 w-4 text-orange-500 mx-auto" />
-                          )}
                         </td>
                       </tr>
                     ))}

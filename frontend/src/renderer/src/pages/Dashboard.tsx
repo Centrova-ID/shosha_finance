@@ -1,7 +1,19 @@
+import { useState } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Input } from '@/components/ui/input'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue
+} from '@/components/ui/select'
 import { useDashboardSummary } from '@/hooks/useDashboard'
+import { useActiveBranches } from '@/hooks/useBranches'
+import { useAuth } from '@/contexts/AuthContext'
 import { formatCurrency } from '@/lib/utils'
-import { TrendingUp, TrendingDown, Wallet, RefreshCw } from 'lucide-react'
+import { TrendingUp, TrendingDown, Wallet, RefreshCw, Users, Building2, Filter, Calendar } from 'lucide-react'
+import TransactionSheet from '@/components/TransactionSheet'
 import {
   BarChart,
   Bar,
@@ -12,8 +24,23 @@ import {
   ResponsiveContainer
 } from 'recharts'
 
+// Get today's date in YYYY-MM-DD format
+const getTodayDate = () => {
+  const today = new Date()
+  return today.toISOString().split('T')[0]
+}
+
 export default function Dashboard() {
-  const { data, isLoading, error } = useDashboardSummary()
+  const { user } = useAuth()
+  const [selectedBranch, setSelectedBranch] = useState<string>('all')
+  const [selectedDate, setSelectedDate] = useState<string>(getTodayDate())
+  const { data: branchesData } = useActiveBranches()
+  const { data, isLoading, error, refetch } = useDashboardSummary({
+    branchId: selectedBranch === 'all' ? undefined : selectedBranch,
+    date: selectedDate || undefined
+  })
+
+  const branches = branchesData?.data || []
 
   if (isLoading) {
     return (
@@ -38,11 +65,87 @@ export default function Dashboard() {
     { name: 'Pengeluaran', amount: summary?.total_out || 0, fill: '#ef4444' }
   ]
 
-  return (
-    <div className="space-y-6">
-      <h2 className="text-3xl font-bold tracking-tight">Dashboard</h2>
+  const getRoleGreeting = () => {
+    switch (user?.role) {
+      case 'admin':
+        return 'Administrator Dashboard'
+      case 'manager':
+        return 'Manager Dashboard'
+      case 'staff':
+        return 'Staff Dashboard'
+      default:
+        return 'Dashboard'
+    }
+  }
 
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+  return (
+    <div className="space-y-6 p-6">
+      {/* Header Section */}
+      <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
+        <div className="space-y-1">
+          <h2 className="text-3xl font-bold tracking-tight">{getRoleGreeting()}</h2>
+          <p className="text-muted-foreground">Selamat datang, {user?.name}</p>
+        </div>
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+          <Card className="p-3">
+            <div className="flex items-center gap-2">
+              <Calendar className="h-4 w-4 text-muted-foreground" />
+              <Input
+                type="date"
+                value={selectedDate}
+                onChange={(e) => setSelectedDate(e.target.value)}
+                className="h-8 w-[140px] border-0 p-0 focus-visible:ring-0"
+              />
+            </div>
+          </Card>
+          <Card className="p-3">
+            <div className="flex items-center gap-2">
+              <Filter className="h-4 w-4 text-muted-foreground" />
+              <Select value={selectedBranch} onValueChange={setSelectedBranch}>
+                <SelectTrigger className="h-8 w-[160px] border-0 p-0 focus:ring-0">
+                  <SelectValue placeholder="Semua Unit" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Semua Unit</SelectItem>
+                  {branches.map((branch) => (
+                    <SelectItem key={branch.id} value={branch.id}>
+                      {branch.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </Card>
+          <TransactionSheet onSuccess={() => refetch()} />
+        </div>
+      </div>
+
+      {user?.role === 'admin' && (
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-2">
+          <Card className="border-l-4 border-l-primary">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Total Cabang</CardTitle>
+              <Building2 className="h-4 w-4 text-primary" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">3</div>
+              <p className="text-xs text-muted-foreground">Cabang aktif</p>
+            </CardContent>
+          </Card>
+          <Card className="border-l-4 border-l-primary">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Total Pengguna</CardTitle>
+              <Users className="h-4 w-4 text-primary" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">5</div>
+              <p className="text-xs text-muted-foreground">Pengguna terdaftar</p>
+            </CardContent>
+          </Card>
+        </div>
+      )}
+
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Total Pemasukan</CardTitle>
@@ -83,19 +186,6 @@ export default function Dashboard() {
               {formatCurrency(summary?.balance || 0)}
             </div>
             <p className="text-xs text-muted-foreground">Saldo saat ini</p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Belum Sync</CardTitle>
-            <RefreshCw className="h-4 w-4 text-orange-500" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-orange-600">
-              {summary?.unsync_count || 0}
-            </div>
-            <p className="text-xs text-muted-foreground">Menunggu sinkronisasi</p>
           </CardContent>
         </Card>
       </div>

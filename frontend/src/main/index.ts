@@ -12,22 +12,22 @@ function startBackend(): void {
     ? join(backendDir, 'cmd/local/main.go')
     : join(process.resourcesPath, 'backend', 'local-backend')
 
+  const commonEnv = {
+    ...process.env,
+    PORT: '8080',
+    SQLITE_PATH: join(app.getPath('userData'), 'shosha_finance.db'),
+    CLOUD_API_URL: process.env.CLOUD_API_URL || 'http://localhost:3000',
+    SYNC_INTERVAL: process.env.SYNC_INTERVAL || '30'
+  }
+
   if (is.dev) {
     backendProcess = spawn('go', ['run', backendPath], {
       cwd: backendDir,
-      env: {
-        ...process.env,
-        PORT: '8080',
-        SQLITE_PATH: join(app.getPath('userData'), 'shosha_finance.db')
-      }
+      env: commonEnv
     })
   } else {
     backendProcess = spawn(backendPath, [], {
-      env: {
-        ...process.env,
-        PORT: '8080',
-        SQLITE_PATH: join(app.getPath('userData'), 'shosha_finance.db')
-      }
+      env: commonEnv
     })
   }
 
