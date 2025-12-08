@@ -6,13 +6,15 @@ import { spawn, ChildProcess } from 'child_process'
 let backendProcess: ChildProcess | null = null
 
 function startBackend(): void {
+  const appPath = app.getAppPath()
+  const backendDir = join(appPath, '..', 'backend')
   const backendPath = is.dev
-    ? join(__dirname, '../../backend/cmd/local/main.go')
+    ? join(backendDir, 'cmd/local/main.go')
     : join(process.resourcesPath, 'backend', 'local-backend')
 
   if (is.dev) {
     backendProcess = spawn('go', ['run', backendPath], {
-      cwd: join(__dirname, '../../backend'),
+      cwd: backendDir,
       env: {
         ...process.env,
         PORT: '8080',
