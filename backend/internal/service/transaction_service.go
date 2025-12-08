@@ -1,6 +1,8 @@
 package service
 
 import (
+	"time"
+
 	"shosha-finance/internal/models"
 	"shosha-finance/internal/repository"
 
@@ -9,13 +11,13 @@ import (
 )
 
 type TransactionService interface {
-	Create(req *models.TransactionRequest, branchID uuid.UUID) (*models.Transaction, error)
+	Create(req *models.TransactionRequest) (*models.Transaction, error)
 	GetByID(id uuid.UUID) (*models.Transaction, error)
-	GetAll(page, limit int, branchID uuid.UUID) ([]models.Transaction, int64, error)
-	GetDashboardSummary(branchID uuid.UUID) (*repository.DashboardSummary, error)
-	GetUnsynced(limit int) ([]models.Transaction, error)
-	MarkAsSynced(ids []uuid.UUID) error
+	GetAll(page, limit int) ([]models.Transaction, int64, error)
+	GetDashboardSummary(filter *repository.DashboardFilter) (*repository.DashboardSummary, error)
 	GetUnsyncedCount() (int64, error)
+	Upsert(tx *models.Transaction) error
+	GetUpdatedAfter(since *time.Time) ([]models.Transaction, error)
 }
 
 type transactionService struct {
@@ -26,7 +28,12 @@ func NewTransactionService(repo repository.TransactionRepository) TransactionSer
 	return &transactionService{repo: repo}
 }
 
-func (s *transactionService) Create(req *models.TransactionRequest, branchID uuid.UUID) (*models.Transaction, error) {
+func (s *transactionService) Create(req *models.TransactionRequest) (*models.Transaction, error) {
+	branchID, err := uuid.Parse(req.BranchID)
+	if err != nil {
+		return nil, err
+	}
+
 	tx := &models.Transaction{
 		ID:          uuid.New(),
 		BranchID:    branchID,
@@ -34,10 +41,9 @@ func (s *transactionService) Create(req *models.TransactionRequest, branchID uui
 		Category:    req.Category,
 		Amount:      req.Amount,
 		Description: req.Description,
-		IsSynced:    false,
 	}
 
-	err := s.repo.Create(tx)
+	err = s.repo.Create(tx)
 	if err != nil {
 		log.Error().Err(err).Msg("Failed to create transaction")
 		return nil, err
@@ -51,22 +57,22 @@ func (s *transactionService) GetByID(id uuid.UUID) (*models.Transaction, error) 
 	return s.repo.FindByID(id)
 }
 
-func (s *transactionService) GetAll(page, limit int, branchID uuid.UUID) ([]models.Transaction, int64, error) {
-	return s.repo.FindAll(page, limit, branchID)
+func (s *transactionService) GetAll(page, limit int) ([]models.Transaction, int64, error) {
+	return s.repo.FindAll(page, limit)
 }
 
-func (s *transactionService) GetDashboardSummary(branchID uuid.UUID) (*repository.DashboardSummary, error) {
-	return s.repo.GetDashboardSummary(branchID)
-}
-
-func (s *transactionService) GetUnsynced(limit int) ([]models.Transaction, error) {
-	return s.repo.FindUnsynced(limit)
-}
-
-func (s *transactionService) MarkAsSynced(ids []uuid.UUID) error {
-	return s.repo.MarkAsSynced(ids)
+func (s *transactionService) GetDashboardSummary(filter *repository.DashboardFilter) (*repository.DashboardSummary, error) {
+	return s.repo.GetDashboardSummary(filter)
 }
 
 func (s *transactionService) GetUnsyncedCount() (int64, error) {
 	return s.repo.GetUnsyncedCount()
+}
+
+func (s *transactionService) Upsert(tx *models.Transaction) error {
+	return s.repo.Upsert(tx)
+}
+
+func (s *transactionService) GetUpdatedAfter(since *time.Time) ([]models.Transaction, error) {
+	return s.repo.GetUpdatedAfter(since)
 }

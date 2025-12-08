@@ -36,11 +36,22 @@ func main() {
 
 	txRepo := repository.NewTransactionRepository(db)
 	branchRepo := repository.NewBranchRepository(db)
+	userRepo := repository.NewUserRepository(db)
 
 	txService := service.NewTransactionService(txRepo)
 	branchService := service.NewBranchService(branchRepo)
+	authService := service.NewAuthService(userRepo, cfg.JWTSecret)
+
+	// Create default admin user for cloud
+	if err := authService.CreateDefaultUsers(); err != nil {
+		log.Warn().Err(err).Msg("Failed to create default users")
+	}
 
 	syncHandler := handler.NewSyncHandler(txService, branchService)
+	authHandler := handler.NewAuthHandler(authService)
+	branchHandler := handler.NewBranchHandler(branchService)
+	txHandler := handler.NewTransactionHandler(txService)
+	dashboardHandler := handler.NewDashboardHandler(txService)
 
 	app := fiber.New(fiber.Config{
 		AppName: "Shosha Finance Cloud",
@@ -52,6 +63,7 @@ func main() {
 
 	api := app.Group("/api/v1")
 
+	// Public routes
 	api.Get("/health", func(c *fiber.Ctx) error {
 		return c.JSON(fiber.Map{
 			"success": true,
@@ -59,10 +71,31 @@ func main() {
 			"data":    fiber.Map{"status": "healthy"},
 		})
 	})
+	api.Post("/auth/login", authHandler.Login)
 
+	// Sync routes (uses API key auth)
 	syncGroup := api.Group("/sync")
-	syncGroup.Use(middleware.BranchAuth(branchService))
 	syncGroup.Post("/push", syncHandler.Push)
+	syncGroup.Get("/pull", syncHandler.Pull)
+
+	// Protected routes (uses JWT auth)
+	protected := api.Group("", middleware.JWTAuth(authService))
+
+	protected.Get("/auth/me", authHandler.Me)
+	protected.Post("/auth/logout", authHandler.Logout)
+
+	protected.Get("/branches", branchHandler.GetAll)
+	protected.Get("/branches/active", branchHandler.GetActive)
+	protected.Get("/branches/:id", branchHandler.GetByID)
+	protected.Post("/branches", branchHandler.Create)
+	protected.Put("/branches/:id", branchHandler.Update)
+	protected.Delete("/branches/:id", branchHandler.Delete)
+
+	protected.Get("/transactions", txHandler.GetAll)
+	protected.Get("/transactions/:id", txHandler.GetByID)
+	protected.Post("/transactions", txHandler.Create)
+
+	protected.Get("/dashboard/summary", dashboardHandler.GetSummary)
 
 	go func() {
 		if err := app.Listen(":" + cfg.Port); err != nil {

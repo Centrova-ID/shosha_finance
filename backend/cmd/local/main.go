@@ -37,13 +37,33 @@ func main() {
 
 	txRepo := repository.NewTransactionRepository(db)
 	branchRepo := repository.NewBranchRepository(db)
+	userRepo := repository.NewUserRepository(db)
 
 	txService := service.NewTransactionService(txRepo)
 	branchService := service.NewBranchService(branchRepo)
+	authService := service.NewAuthService(userRepo, cfg.JWTSecret)
 
-	txHandler := handler.NewTransactionHandler(txService, cfg.BranchID)
-	dashboardHandler := handler.NewDashboardHandler(txService, cfg.BranchID)
-	systemHandler := handler.NewSystemHandler(txService, cfg.CloudAPIURL)
+	if err := authService.CreateDefaultUsers(); err != nil {
+		log.Warn().Err(err).Msg("Failed to create default users")
+	}
+
+	if err := branchService.CreateDefaultBranches(); err != nil {
+		log.Warn().Err(err).Msg("Failed to create default branches")
+	}
+
+	// Initialize sync worker
+	syncWorker := worker.NewSyncWorker(db, cfg)
+	if cfg.CloudAPIURL != "" {
+		syncWorker.Start()
+	} else {
+		log.Warn().Msg("Sync worker disabled: CLOUD_API_URL not set")
+	}
+
+	txHandler := handler.NewTransactionHandler(txService)
+	dashboardHandler := handler.NewDashboardHandler(txService)
+	systemHandler := handler.NewSystemHandler(txService, syncWorker)
+	authHandler := handler.NewAuthHandler(authService)
+	branchHandler := handler.NewBranchHandler(branchService)
 
 	app := fiber.New(fiber.Config{
 		AppName: "Shosha Finance Local",
@@ -55,21 +75,30 @@ func main() {
 
 	api := app.Group("/api/v1")
 
-	api.Post("/transactions", txHandler.Create)
-	api.Get("/transactions", txHandler.GetAll)
-	api.Get("/transactions/:id", txHandler.GetByID)
-
-	api.Get("/dashboard/summary", dashboardHandler.GetSummary)
-
-	api.Get("/system/status", systemHandler.GetStatus)
+	// Public routes
+	api.Post("/auth/login", authHandler.Login)
 	api.Get("/health", systemHandler.HealthCheck)
 
-	syncWorker := worker.NewSyncWorker(txService, cfg)
-	if cfg.BranchAPIKey != "" && cfg.CloudAPIURL != "" {
-		syncWorker.Start()
-	} else {
-		log.Warn().Msg("Sync worker disabled: missing BRANCH_API_KEY or CLOUD_API_URL")
-	}
+	// Protected routes
+	protected := api.Group("", middleware.JWTAuth(authService))
+	
+	protected.Get("/auth/me", authHandler.Me)
+	protected.Post("/auth/logout", authHandler.Logout)
+
+	protected.Post("/transactions", txHandler.Create)
+	protected.Get("/transactions", txHandler.GetAll)
+	protected.Get("/transactions/:id", txHandler.GetByID)
+
+	protected.Get("/branches", branchHandler.GetAll)
+	protected.Get("/branches/active", branchHandler.GetActive)
+	protected.Get("/branches/:id", branchHandler.GetByID)
+	protected.Post("/branches", branchHandler.Create)
+	protected.Put("/branches/:id", branchHandler.Update)
+	protected.Delete("/branches/:id", branchHandler.Delete)
+
+	protected.Get("/dashboard/summary", dashboardHandler.GetSummary)
+
+	protected.Get("/system/status", systemHandler.GetStatus)
 
 	go func() {
 		if err := app.Listen(":" + cfg.Port); err != nil {
@@ -86,6 +115,4 @@ func main() {
 	log.Info().Msg("Shutting down...")
 	syncWorker.Stop()
 	app.Shutdown()
-
-	_ = branchService
 }

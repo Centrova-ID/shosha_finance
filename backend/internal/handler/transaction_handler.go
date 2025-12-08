@@ -12,16 +12,11 @@ import (
 )
 
 type TransactionHandler struct {
-	service  service.TransactionService
-	branchID uuid.UUID
+	service service.TransactionService
 }
 
-func NewTransactionHandler(svc service.TransactionService, branchID string) *TransactionHandler {
-	bid, _ := uuid.Parse(branchID)
-	return &TransactionHandler{
-		service:  svc,
-		branchID: bid,
-	}
+func NewTransactionHandler(svc service.TransactionService) *TransactionHandler {
+	return &TransactionHandler{service: svc}
 }
 
 func (h *TransactionHandler) Create(c *fiber.Ctx) error {
@@ -29,6 +24,10 @@ func (h *TransactionHandler) Create(c *fiber.Ctx) error {
 
 	if err := c.BodyParser(&req); err != nil {
 		return response.BadRequest(c, "Invalid request body")
+	}
+
+	if req.BranchID == "" {
+		return response.BadRequest(c, "Branch ID is required")
 	}
 
 	if req.Type != models.TransactionTypeIN && req.Type != models.TransactionTypeOUT {
@@ -43,7 +42,7 @@ func (h *TransactionHandler) Create(c *fiber.Ctx) error {
 		return response.BadRequest(c, "Category is required")
 	}
 
-	tx, err := h.service.Create(&req, h.branchID)
+	tx, err := h.service.Create(&req)
 	if err != nil {
 		return response.InternalError(c, "Failed to create transaction")
 	}
@@ -62,7 +61,7 @@ func (h *TransactionHandler) GetAll(c *fiber.Ctx) error {
 		limit = 10
 	}
 
-	transactions, total, err := h.service.GetAll(page, limit, h.branchID)
+	transactions, total, err := h.service.GetAll(page, limit)
 	if err != nil {
 		return response.InternalError(c, "Failed to get transactions")
 	}
