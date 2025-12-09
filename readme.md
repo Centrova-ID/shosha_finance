@@ -296,7 +296,76 @@ cd backend
 make build-cloud
 ./bin/cloud-backend
 # Atau gunakan Docker Compose
+## 🏭 Production Deployment Guide
+
+### 1. Build & Deploy Backend Cloud (API)
+
+**Server Requirements:**
+- OS: Linux (Ubuntu/Debian recommended)
+- Go 1.22+
+- PostgreSQL 15+
+- Docker (optional)
+
+**Steps:**
+```bash
+# Clone repo di server
+git clone https://github.com/FuncSmile/shosha_finance.git
+cd shosha_finance/backend
+
+# Edit .env.cloud sesuai server
+nano .env.cloud
+
+# Build & run cloud backend
+make build-cloud
+./bin/cloud-backend
+# Atau gunakan Docker Compose
+cd ..
 docker-compose up -d
+```
+
+### 2. Build & Deploy Desktop App (Electron)
+
+**User Requirements:**
+- OS: Windows/macOS/Linux
+- Node.js 18+
+
+**Steps:**
+```bash
+# Di mesin user
+cd shosha_finance/frontend
+npm install
+# Build sesuai OS
+npm run build:win    # Windows
+npm run build:mac    # macOS
+npm run build:linux  # Linux
+```
+
+### 3. Konfigurasi Sync ke Cloud
+
+Edit file `.env.local` di backend desktop:
+```dotenv
+CLOUD_API_URL=https://api.shosha.com:3000   # Ganti dengan alamat API cloud production
+```
+Restart backend lokal agar ENV baru terbaca.
+
+### 4. Jalankan Aplikasi
+
+**Backend lokal:**
+```bash
+cd backend
+./bin/local-backend
+```
+
+**Frontend desktop:**
+Jalankan file hasil build sesuai OS (misal .exe, .app, .AppImage)
+
+### 5. Maintenance & Monitoring
+- Pastikan server cloud selalu running
+- Backup database PostgreSQL secara berkala
+- Update ENV jika ada perubahan server
+- Cek log backend lokal & cloud untuk troubleshooting
+
+---
 ```
 
 ### 2. Build Backend Lokal (Desktop)
