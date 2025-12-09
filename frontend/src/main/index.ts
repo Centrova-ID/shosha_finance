@@ -8,26 +8,30 @@ let backendProcess: ChildProcess | null = null
 function startBackend(): void {
   const appPath = app.getAppPath()
   const backendDir = join(appPath, '..', 'backend')
+  // In dev, run Go source; in prod, run binary from resources/backend/local-backend
   const backendPath = is.dev
     ? join(backendDir, 'cmd/local/main.go')
-    : join(process.resourcesPath, 'backend', 'local-backend')
+    : join(process.resourcesPath, 'backend', 'bin', 'local-backend')
+
+  const commonEnv = {
+    ...process.env,
+    PORT: '8080',
+    SQLITE_PATH: join(app.getPath('userData'), 'shosha_finance.db'),
+    CLOUD_API_URL: process.env.CLOUD_API_URL || 'http://localhost:3000',
+    SYNC_INTERVAL: process.env.SYNC_INTERVAL || '30'
+  }
 
   if (is.dev) {
     backendProcess = spawn('go', ['run', backendPath], {
       cwd: backendDir,
-      env: {
-        ...process.env,
-        PORT: '8080',
-        SQLITE_PATH: join(app.getPath('userData'), 'shosha_finance.db')
-      }
+      env: commonEnv
     })
   } else {
     backendProcess = spawn(backendPath, [], {
-      env: {
-        ...process.env,
-        PORT: '8080',
-        SQLITE_PATH: join(app.getPath('userData'), 'shosha_finance.db')
-      }
+      env: commonEnv
+    })
+    backendProcess.on('error', (err) => {
+      console.error('Failed to start backend binary:', err)
     })
   }
 

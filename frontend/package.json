@@ -3,6 +3,7 @@
   "version": "1.0.0",
   "description": "Katering Haramain Finance Desktop App",
   "main": "out/main/index.js",
+  "homepage": "https://github.com/FuncSmile/shosha_finance",
   "scripts": {
     "dev": "electron-vite dev",
     "build": "electron-vite build",

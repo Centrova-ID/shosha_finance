@@ -1,10 +1,10 @@
 import { useQuery } from '@tanstack/react-query'
-import { getDashboardSummary, getSystemStatus } from '../api/dashboard'
+import { getDashboardSummary, getSystemStatus, DashboardParams } from '../api/dashboard'
 
-export function useDashboardSummary() {
+export function useDashboardSummary(params?: DashboardParams) {
   return useQuery({
-    queryKey: ['dashboard'],
-    queryFn: getDashboardSummary,
+    queryKey: ['dashboard', params?.branchId, params?.date],
+    queryFn: () => getDashboardSummary(params),
     refetchInterval: 30000
   })
 }

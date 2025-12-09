@@ -1,5 +1,15 @@
 export type TransactionType = 'IN' | 'OUT'
 
+export interface Branch {
+  id: string
+  code: string
+  name: string
+  description: string
+  is_active: boolean
+  created_at: string
+  updated_at: string
+}
+
 export interface Transaction {
   id: string
   branch_id: string
@@ -8,11 +18,11 @@ export interface Transaction {
   amount: number
   description: string
   created_at: string
-  is_synced: boolean
-  synced_at: string | null
+  branch?: Branch
 }
 
 export interface TransactionRequest {
+  branch_id: string
   type: TransactionType
   category: string
   amount: number
@@ -29,16 +39,7 @@ export interface DashboardSummary {
 }
 
 export interface SystemStatus {
-  unsynced_count: number
   status: 'online' | 'offline'
+  unsynced_count: number
   timestamp: string
-}
-
-export interface Branch {
-  id: string
-  code: string
-  name: string
-  api_key: string
-  created_at: string
-  updated_at: string
 }
