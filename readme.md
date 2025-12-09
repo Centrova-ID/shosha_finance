@@ -359,8 +359,6 @@ SQLITE_PATH=./shosha_finance.db
 
 # Cloud API Configuration
 CLOUD_API_URL=http://localhost:3000
-BRANCH_API_KEY=your-branch-api-key-here
-BRANCH_ID=your-branch-uuid-here
 
 # Sync Settings
 SYNC_INTERVAL=30  # seconds
