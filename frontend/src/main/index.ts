@@ -8,9 +8,10 @@ let backendProcess: ChildProcess | null = null
 function startBackend(): void {
   const appPath = app.getAppPath()
   const backendDir = join(appPath, '..', 'backend')
+  // In dev, run Go source; in prod, run binary from resources/backend/local-backend
   const backendPath = is.dev
     ? join(backendDir, 'cmd/local/main.go')
-    : join(process.resourcesPath, 'backend', 'local-backend')
+    : join(process.resourcesPath, 'backend', 'bin', 'local-backend')
 
   const commonEnv = {
     ...process.env,
@@ -28,6 +29,9 @@ function startBackend(): void {
   } else {
     backendProcess = spawn(backendPath, [], {
       env: commonEnv
+    })
+    backendProcess.on('error', (err) => {
+      console.error('Failed to start backend binary:', err)
     })
   }
 
