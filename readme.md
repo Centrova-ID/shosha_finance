@@ -1,5 +1,4 @@
 <div align="center">
-
 # 💰 Shosha Finance
 
 ### Distributed Offline-First Finance System for Multi-Branch Operations
@@ -7,7 +6,8 @@
 [![Go Version](https://img.shields.io/badge/Go-1.22+-00ADD8?style=for-the-badge&logo=go)](https://go.dev/)
 [![React](https://img.shields.io/badge/React-18+-61DAFB?style=for-the-badge&logo=react&logoColor=black)](https://reactjs.org/)
 [![Electron](https://img.shields.io/badge/Electron-Latest-47848F?style=for-the-badge&logo=electron)](https://www.electronjs.org/)
-[![TypeScript](https://img.shields.io/badge/TypeScript-5+-3178C6?style=for-the-badge&logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
+[![TypeScript](https://img.shields.io/badge/TypeScript-5+-3178C6?style=for-the-badge&logo=typescript&logoColor=white)](https://www.typescriptlang.org/)---
+Test ONLINE Mode (2 terminal)
 [![Fiber](https://img.shields.io/badge/Fiber-v2-00ACD7?style=for-the-badge&logo=go)](https://gofiber.io/)
 [![SQLite](https://img.shields.io/badge/SQLite-3-003B57?style=for-the-badge&logo=sqlite)](https://www.sqlite.org/)
 [![PostgreSQL](https://img.shields.io/badge/PostgreSQL-15-4169E1?style=for-the-badge&logo=postgresql&logoColor=white)](https://www.postgresql.org/)
@@ -286,40 +286,51 @@ npm run build:mac
 ### <img src="https://raw.githubusercontent.com/FortAwesome/Font-Awesome/6.x/svgs/brands/linux.svg" width="20" height="20"> Linux
 
 #### Setup Backend
+## 🚀 Cara Build & Deploy Shosha Finance
 
+### 1. Build Backend Cloud (API)
+
+Jalankan di server/VPS atau lokal:
 ```bash
-# 1. Navigate to backend directory
 cd backend
-
-# 2. Copy environment template
-cp .env.local.example .env.local
-
-# 3. Edit .env.local with your configuration
-nano .env.local
-# Or: vim .env.local
-
-# 4. Install Go dependencies
-go mod download
-
-# 5. Build and run local backend
-go run cmd/local/main.go
+make build-cloud
+./bin/cloud-backend
+# Atau gunakan Docker Compose
+docker-compose up -d
 ```
 
-#### Setup Frontend
+### 2. Build Backend Lokal (Desktop)
+
+Jalankan di mesin user:
+```bash
+cd backend
+make build-local
+./bin/local-backend
+```
+
+### 3. Build Frontend Desktop (Electron)
 
 ```bash
-# 1. Navigate to frontend directory
 cd frontend
-
-# 2. Install Node dependencies
 npm install
-
-# 3. Run in development mode
-npm run dev
-
-# 4. Build Linux AppImage/deb
-npm run build:linux
+# Build sesuai OS
+npm run build:win    # Windows
+npm run build:mac    # macOS
+npm run build:linux  # Linux
 ```
+
+### 4. Konfigurasi Sync (CLOUD_API_URL)
+
+Edit file `.env.local` di folder backend desktop:
+```dotenv
+CLOUD_API_URL=https://api.shosha.com:3000   # Ganti dengan alamat API cloud Anda
+```
+Restart backend lokal agar ENV baru terbaca.
+
+### 5. Jalankan Aplikasi
+
+Jalankan backend lokal dan frontend desktop. Sync otomatis ke API cloud sesuai ENV.
+
 
 **Output:** Binary will be in `frontend/dist/`
 

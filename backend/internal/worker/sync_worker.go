@@ -23,14 +23,14 @@ type SyncWorker struct {
 }
 
 type SyncPushRequest struct {
-	Branches     []models.Branch     `json:"branches"`
+	Branches     []models.Branch      `json:"branches"`
 	Transactions []models.Transaction `json:"transactions"`
 }
 
 type SyncPullResponse struct {
 	Success bool `json:"success"`
 	Data    struct {
-		Branches     []models.Branch     `json:"branches"`
+		Branches     []models.Branch      `json:"branches"`
 		Transactions []models.Transaction `json:"transactions"`
 		LastSyncAt   string               `json:"last_sync_at"`
 	} `json:"data"`
@@ -111,7 +111,7 @@ func (w *SyncWorker) pull() error {
 		return err
 	}
 
-	req.Header.Set("Authorization", "Bearer "+w.cfg.BranchAPIKey)
+	// Authorization header removed, BranchAPIKey no longer used
 
 	resp, err := w.client.Do(req)
 	if err != nil {
@@ -193,7 +193,7 @@ func (w *SyncWorker) push() error {
 	}
 
 	req.Header.Set("Content-Type", "application/json")
-	req.Header.Set("Authorization", "Bearer "+w.cfg.BranchAPIKey)
+	// Authorization header removed, BranchAPIKey no longer used
 
 	resp, err := w.client.Do(req)
 	if err != nil {
@@ -271,4 +271,5 @@ func (w *SyncWorker) GetUnsyncedCount() (int64, error) {
 	var count int64
 	err := w.db.Model(&models.Transaction{}).Where("is_synced = ?", false).Count(&count).Error
 	return count, err
+	// req.Header.Set("Authorization", "Bearer "+w.cfg.BranchAPIKey)
 }
