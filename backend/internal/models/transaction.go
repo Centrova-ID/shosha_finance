@@ -19,7 +19,7 @@ type Transaction struct {
 	BranchID    uuid.UUID       `gorm:"type:uuid;index;not null" json:"branch_id"`
 	Type        TransactionType `gorm:"type:varchar(10);not null" json:"type"`
 	Category    string          `gorm:"type:varchar(50);not null" json:"category"`
-	Amount      int64           `gorm:"not null" json:"amount"`
+	Amount      float64         `gorm:"type:decimal(15,2);not null" json:"amount"`
 	Description string          `gorm:"type:text" json:"description"`
 	CreatedAt   time.Time       `gorm:"autoCreateTime" json:"created_at"`
 	IsSynced    bool            `gorm:"default:false" json:"is_synced"`
@@ -38,7 +38,7 @@ type TransactionRequest struct {
 	BranchID    string          `json:"branch_id" validate:"required"`
 	Type        TransactionType `json:"type" validate:"required,oneof=IN OUT"`
 	Category    string          `json:"category" validate:"required"`
-	Amount      int64           `json:"amount" validate:"required,gt=0"`
+	Amount      float64         `json:"amount" validate:"required,gt=0"`
 	Description string          `json:"description"`
 }
 
@@ -47,7 +47,7 @@ type TransactionResponse struct {
 	BranchID    uuid.UUID       `json:"branch_id"`
 	Type        TransactionType `json:"type"`
 	Category    string          `json:"category"`
-	Amount      int64           `json:"amount"`
+	Amount      float64         `json:"amount"`
 	Description string          `json:"description"`
 	CreatedAt   time.Time       `json:"created_at"`
 }

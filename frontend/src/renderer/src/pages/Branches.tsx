@@ -11,6 +11,16 @@ import {
   SheetHeader,
   SheetTitle
 } from '@/components/ui/sheet'
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle
+} from '@/components/ui/alert-dialog'
 import { toast } from '@/hooks/use-toast'
 import { Branch, BranchRequest } from '@/api/branches'
 import { Plus, Pencil, Trash2, RefreshCw, Building2 } from 'lucide-react'
@@ -23,6 +33,8 @@ export default function Branches() {
 
   const [sheetOpen, setSheetOpen] = useState(false)
   const [editingBranch, setEditingBranch] = useState<Branch | null>(null)
+  const [confirmOpen, setConfirmOpen] = useState(false)
+  const [branchToDelete, setBranchToDelete] = useState<Branch | null>(null)
   const [formData, setFormData] = useState<BranchRequest>({
     code: '',
     name: '',
@@ -80,11 +92,16 @@ export default function Branches() {
     }
   }
 
-  const handleDelete = async (branch: Branch) => {
-    if (!confirm(`Hapus unit "${branch.name}"?`)) return
+  const handleDelete = (branch: Branch) => {
+    setBranchToDelete(branch)
+    setConfirmOpen(true)
+  }
+
+  const confirmDelete = async () => {
+    if (!branchToDelete) return
 
     try {
-      await deleteMutation.mutateAsync(branch.id)
+      await deleteMutation.mutateAsync(branchToDelete.id)
       toast({ title: 'Berhasil', description: 'Unit berhasil dihapus' })
     } catch {
       toast({
@@ -92,6 +109,9 @@ export default function Branches() {
         description: 'Gagal menghapus unit',
         variant: 'destructive'
       })
+    } finally {
+      setConfirmOpen(false)
+      setBranchToDelete(null)
     }
   }
 
@@ -206,6 +226,35 @@ export default function Branches() {
           </form>
         </SheetContent>
       </Sheet>
+
+      <AlertDialog
+        open={confirmOpen}
+        onOpenChange={(open) => {
+          setConfirmOpen(open)
+          if (!open) setBranchToDelete(null)
+        }}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Hapus Unit</AlertDialogTitle>
+            <AlertDialogDescription>
+              {branchToDelete
+                ? `Hapus unit "${branchToDelete.name}"? Tindakan ini tidak dapat dibatalkan.`
+                : 'Hapus unit ini?'}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={deleteMutation.isPending}>Batal</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={confirmDelete}
+              disabled={deleteMutation.isPending}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {deleteMutation.isPending ? 'Menghapus...' : 'Hapus'}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   )
 }

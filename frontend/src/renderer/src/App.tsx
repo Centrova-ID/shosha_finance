@@ -7,6 +7,8 @@ import Login from './pages/Login'
 import Dashboard from './pages/Dashboard'
 import Transactions from './pages/Transactions'
 import Branches from './pages/Branches'
+import Income from './pages/Income'
+import Expense from './pages/Expense'
 
 function AppRoutes(): JSX.Element {
   const { isAuthenticated, isLoading } = useAuth()
@@ -51,6 +53,26 @@ function AppRoutes(): JSX.Element {
           <ProtectedRoute allowedRoles={['admin', 'manager']}>
             <AppLayout>
               <Branches />
+            </AppLayout>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/income"
+        element={
+          <ProtectedRoute allowedRoles={['admin', 'manager', 'staff']}>
+            <AppLayout>
+              <Income />
+            </AppLayout>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/expense"
+        element={
+          <ProtectedRoute allowedRoles={['admin', 'manager', 'staff']}>
+            <AppLayout>
+              <Expense />
             </AppLayout>
           </ProtectedRoute>
         }

@@ -61,8 +61,11 @@ export default function Dashboard() {
   const summary = data?.data
 
   const chartData = [
-    { name: 'Pemasukan', amount: summary?.total_in || 0, fill: '#22c55e' },
-    { name: 'Pengeluaran', amount: summary?.total_out || 0, fill: '#ef4444' }
+    {
+      name: 'Ringkasan',
+      pemasukan: summary?.total_in || 0,
+      pengeluaran: summary?.total_out || 0
+    }
   ]
 
   const getRoleGreeting = () => {
@@ -145,7 +148,7 @@ export default function Dashboard() {
         </div>
       )}
 
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+      <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Total Pemasukan</CardTitle>
@@ -194,14 +197,15 @@ export default function Dashboard() {
         <CardHeader>
           <CardTitle>Ringkasan Keuangan</CardTitle>
         </CardHeader>
-        <CardContent className="pl-2">
-          <ResponsiveContainer width="100%" height={300}>
-            <BarChart data={chartData}>
+        <CardContent className="pl-26">
+          <ResponsiveContainer width="100%" height={400}>
+            <BarChart data={chartData} margin={{ left: 80, right: 20, top: 20, bottom: 20 }}>
               <CartesianGrid strokeDasharray="3 3" />
               <XAxis dataKey="name" />
               <YAxis tickFormatter={(value) => formatCurrency(value)} />
               <Tooltip formatter={(value: number) => formatCurrency(value)} />
-              <Bar dataKey="amount" fill="#8884d8" />
+              <Bar dataKey="pemasukan" name="Pemasukan" fill="#22c55e" label={{ position: 'top', formatter: (value: number) => value > 0 ? formatCurrency(value) : 'Rp 0' }} />
+              <Bar dataKey="pengeluaran" name="Pengeluaran" fill="#ef4444" label={{ position: 'top', formatter: (value: number) => value > 0 ? formatCurrency(value) : 'Rp 0' }} />
             </BarChart>
           </ResponsiveContainer>
         </CardContent>

@@ -38,10 +38,14 @@ func main() {
 	txRepo := repository.NewTransactionRepository(db)
 	branchRepo := repository.NewBranchRepository(db)
 	userRepo := repository.NewUserRepository(db)
+	incomeRepo := repository.NewIncomeEntryRepository(db)
+	expenseRepo := repository.NewExpenseEntryRepository(db)
 
 	txService := service.NewTransactionService(txRepo)
 	branchService := service.NewBranchService(branchRepo)
 	authService := service.NewAuthService(userRepo, cfg.JWTSecret)
+	incomeService := service.NewIncomeEntryService(incomeRepo, branchRepo)
+	expenseService := service.NewExpenseEntryService(expenseRepo, branchRepo)
 
 	if err := authService.CreateDefaultUsers(); err != nil {
 		log.Warn().Err(err).Msg("Failed to create default users")
@@ -64,6 +68,8 @@ func main() {
 	systemHandler := handler.NewSystemHandler(txService, syncWorker)
 	authHandler := handler.NewAuthHandler(authService)
 	branchHandler := handler.NewBranchHandler(branchService)
+	incomeHandler := handler.NewIncomeEntryHandler(incomeService)
+	expenseHandler := handler.NewExpenseEntryHandler(expenseService)
 
 	app := fiber.New(fiber.Config{
 		AppName: "Shosha Finance Local",
@@ -97,6 +103,22 @@ func main() {
 	protected.Delete("/branches/:id", branchHandler.Delete)
 
 	protected.Get("/dashboard/summary", dashboardHandler.GetSummary)
+
+	// Income entries
+	protected.Post("/income-entries", incomeHandler.Create)
+	protected.Get("/income-entries", incomeHandler.GetAll)
+	protected.Get("/income-entries/range", incomeHandler.GetByDateRange)
+	protected.Get("/income-entries/:id", incomeHandler.GetByID)
+	protected.Put("/income-entries/:id", incomeHandler.Update)
+	protected.Delete("/income-entries/:id", incomeHandler.Delete)
+
+	// Expense entries
+	protected.Post("/expense-entries", expenseHandler.Create)
+	protected.Get("/expense-entries", expenseHandler.GetAll)
+	protected.Get("/expense-entries/range", expenseHandler.GetByDateRange)
+	protected.Get("/expense-entries/:id", expenseHandler.GetByID)
+	protected.Put("/expense-entries/:id", expenseHandler.Update)
+	protected.Delete("/expense-entries/:id", expenseHandler.Delete)
 
 	protected.Get("/system/status", systemHandler.GetStatus)
 

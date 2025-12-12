@@ -13,7 +13,9 @@ import {
   Building2,
   Cloud,
   CloudOff,
-  Loader2
+  Loader2,
+  TrendingUp,
+  TrendingDown
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { useState, useEffect } from 'react'
@@ -27,6 +29,8 @@ interface NavItem {
 
 const navItems: NavItem[] = [
   { path: '/', label: 'Dashboard', icon: LayoutDashboard, roles: ['admin', 'manager', 'staff'] },
+  { path: '/income', label: 'Pemasukan', icon: TrendingUp, roles: ['admin', 'manager', 'staff'] },
+  { path: '/expense', label: 'Pengeluaran', icon: TrendingDown, roles: ['admin', 'manager', 'staff'] },
   { path: '/transactions', label: 'Transaksi', icon: Receipt, roles: ['admin', 'manager', 'staff'] },
   { path: '/branches', label: 'Unit', icon: Building2, roles: ['admin', 'manager'] },
   { path: '/users', label: 'Pengguna', icon: Users, roles: ['admin'] },

@@ -12,6 +12,7 @@ import (
 
 type BranchRepository interface {
 	Create(branch *models.Branch) error
+	GetByID(id uuid.UUID) (*models.Branch, error)
 	FindByID(id uuid.UUID) (*models.Branch, error)
 	FindByCode(code string) (*models.Branch, error)
 	FindAll() ([]models.Branch, error)
@@ -29,6 +30,11 @@ type branchRepository struct {
 
 func NewBranchRepository(db *gorm.DB) BranchRepository {
 	return &branchRepository{db: db}
+}
+
+// GetByID is an alias to FindByID for clearer naming in services
+func (r *branchRepository) GetByID(id uuid.UUID) (*models.Branch, error) {
+	return r.FindByID(id)
 }
 
 func (r *branchRepository) Create(branch *models.Branch) error {
