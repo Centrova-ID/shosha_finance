@@ -9,23 +9,23 @@ import (
 
 // IncomeEntry represents a daily income entry for a branch
 type IncomeEntry struct {
-	ID              uuid.UUID  `gorm:"type:uuid;primary_key" json:"id"`
-	BranchID        uuid.UUID  `gorm:"type:uuid;index;not null" json:"branch_id"`
-	Date            time.Time  `gorm:"type:date;not null;index" json:"date"`
-	Omzet           float64    `gorm:"type:decimal(15,2);not null" json:"omzet"`
-	PemasukanToru   float64    `gorm:"type:decimal(15,2);not null" json:"pemasukan_toru"`
-	PemasukanCash   float64    `gorm:"type:decimal(15,2);not null" json:"pemasukan_cash"` // Auto-calculated: Omzet - PemasukanToru
-	QrisBCA         float64    `gorm:"type:decimal(15,2);not null;default:0" json:"qris_bca"`
-	QrisBNI         float64    `gorm:"type:decimal(15,2);not null;default:0" json:"qris_bni"`
-	QrisBRI         float64    `gorm:"type:decimal(15,2);not null;default:0" json:"qris_bri"`
-	TransferBCA     float64    `gorm:"type:decimal(15,2);not null;default:0" json:"transfer_bca"`
-	TransferBNI     float64    `gorm:"type:decimal(15,2);not null;default:0" json:"transfer_bni"`
-	TransferBRI     float64    `gorm:"type:decimal(15,2);not null;default:0" json:"transfer_bri"`
-	CreatedAt       time.Time  `gorm:"autoCreateTime" json:"created_at"`
-	UpdatedAt       time.Time  `gorm:"autoUpdateTime" json:"updated_at"`
-	IsSynced        bool       `gorm:"default:false" json:"is_synced"`
-	SyncedAt        *time.Time `json:"synced_at"`
-	Branch          Branch     `gorm:"foreignKey:BranchID" json:"branch,omitempty"`
+	ID            uuid.UUID  `gorm:"type:uuid;primary_key" json:"id"`
+	BranchID      uuid.UUID  `gorm:"type:uuid;index;not null" json:"branch_id"`
+	Date          time.Time  `gorm:"type:date;not null;index" json:"date"`
+	Omzet         float64    `gorm:"type:decimal(15,2);not null" json:"omzet"`
+	PemasukanToru float64    `gorm:"type:decimal(15,2);not null" json:"pemasukan_toru"`
+	PemasukanCash float64    `gorm:"type:decimal(15,2);not null" json:"pemasukan_cash"` // Auto-calculated: Omzet - PemasukanToru
+	QrisBCA       float64    `gorm:"type:decimal(15,2);not null;default:0" json:"qris_bca"`
+	QrisBNI       float64    `gorm:"type:decimal(15,2);not null;default:0" json:"qris_bni"`
+	QrisBRI       float64    `gorm:"type:decimal(15,2);not null;default:0" json:"qris_bri"`
+	TransferBCA   float64    `gorm:"type:decimal(15,2);not null;default:0" json:"transfer_bca"`
+	TransferBNI   float64    `gorm:"type:decimal(15,2);not null;default:0" json:"transfer_bni"`
+	TransferBRI   float64    `gorm:"type:decimal(15,2);not null;default:0" json:"transfer_bri"`
+	CreatedAt     time.Time  `gorm:"autoCreateTime" json:"created_at"`
+	UpdatedAt     time.Time  `gorm:"autoUpdateTime" json:"updated_at"`
+	IsSynced      bool       `gorm:"default:false" json:"is_synced"`
+	SyncedAt      *time.Time `json:"synced_at"`
+	Branch        Branch     `gorm:"foreignKey:BranchID" json:"branch,omitempty"`
 }
 
 func (i *IncomeEntry) BeforeCreate(tx *gorm.DB) error {

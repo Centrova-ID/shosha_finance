@@ -87,7 +87,7 @@ func main() {
 
 	// Protected routes
 	protected := api.Group("", middleware.JWTAuth(authService))
-	
+
 	protected.Get("/auth/me", authHandler.Me)
 	protected.Post("/auth/logout", authHandler.Logout)
 
